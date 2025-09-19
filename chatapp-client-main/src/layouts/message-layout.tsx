@@ -1,14 +1,18 @@
 'use client'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import { Archive, Edit, Home, Inbox, Settings, UserX } from 'lucide-react'
+import { Archive, Home, Inbox, Settings, UserX } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 import ChatList from '~/app/[locale]/(main)/messages/components/chat-list'
 import { Nav } from '~/components/nav'
 import { NetworkStatusIndicator } from '~/components/network-status'
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '~/components/ui/resizable'
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup
+} from '~/components/ui/resizable'
 import { ScrollArea } from '~/components/ui/scroll-area'
 import { Separator } from '~/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs'
@@ -21,68 +25,71 @@ import BlockedUsersList from '~/components/ui/chat/blocked-users-list'
 import { useMessagesTranslation } from '~/hooks/use-translations'
 
 export default function MessageLayout({ children }: LayoutProps) {
-  // Sử dụng hook đa ngôn ngữ có sẵn
+  // i18n
   const t = useMessagesTranslation()
-  
+
+  // routing
   const searchParams = useSearchParams()
   const pathname = usePathname()
   const router = useRouter()
-  const [isCollapsed, setIsCollapsed] = useState(false)
-  const [minLayout, setMinLayout] = useState<number[]>([20, 32, 48])
+
+  // responsive
   const isMobile = useMediaQuery('(max-width: 768px)')
   const isSmallScreen = useMediaQuery('(max-width: 1024px)')
 
-  // Lấy filter từ URL hoặc mặc định là 'all'
+  // sidebar collapse + layout preset
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [minLayout, setMinLayout] = useState<number[]>([20, 32, 48]) // tổng ~100
+
+  // query state (controlled)
   const currentFilter = searchParams.get('filter') || 'all'
-  // Lấy view từ URL hoặc mặc định là 'inbox'
   const viewParam = searchParams.get('view') || 'inbox'
   const validViews = ['inbox', 'blocked-users', 'archived']
   const currentView = validViews.includes(viewParam) ? viewParam : 'inbox'
 
-  // Kiểm tra xem có đang xem chi tiết cuộc trò chuyện không
-  const chatId = pathname.split('/').pop()
-  const isViewingChat = pathname.includes('/messages/') && chatId !== 'messages'
+  // robust path parsing
+  const pathNoQuery = (pathname || '').split('?')[0]
+  const segments = pathNoQuery.split('/').filter(Boolean)
+  const lastSeg = segments[segments.length - 1]
+  const isInMessages = segments.includes('messages')
+  const isViewingChat = isInMessages && lastSeg !== 'messages'
+  const chatId = isViewingChat ? lastSeg : null
 
+  // sync layout on breakpoint change
   useEffect(() => {
     if (isSmallScreen) {
       onCollapseCallback(true)
       setMinLayout([4, 46, 50])
+    } else {
+      onCollapseCallback(false)
+      setMinLayout([20, 32, 48])
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSmallScreen])
 
-  const onCollapseCallback = (isCollapsed: boolean) => {
-    setIsCollapsed(isCollapsed)
-    document.cookie = `react-resizable-panels:collapsed=${JSON.stringify(isCollapsed)}`
+  const onCollapseCallback = (collapsed: boolean) => {
+    setIsCollapsed(collapsed)
+    document.cookie = `react-resizable-panels:collapsed=${JSON.stringify(collapsed)}`
+  }
+
+  // unified push to keep locale/segment and only change query
+  const pushWithQuery = (nextParams: URLSearchParams) => {
+    const basePath = pathNoQuery // gồm cả /[locale]/(main)/messages[/chatId]
+    router.push(`${basePath}?${nextParams.toString()}`)
   }
 
   const handleChangeTab = (value: string) => {
     const params = new URLSearchParams(searchParams)
     params.set('filter', value)
-
-    // Giữ nguyên chatId trong URL nếu có
-    const chatId = pathname.split('/').pop()
-    if (chatId && pathname.includes('/messages/')) {
-      router.push(`/messages/${chatId}?${params.toString()}`)
-    } else {
-      router.push(`${pathname}?${params.toString()}`)
-    }
+    pushWithQuery(params)
   }
 
-  // Xử lý khi click vào các mục trong sidebar
   const handleNavClick = (view: string) => {
     const params = new URLSearchParams(searchParams)
     params.set('view', view)
-
-    // Giữ nguyên chatId trong URL nếu có
-    const chatId = pathname.split('/').pop()
-    if (chatId && pathname.includes('/messages/')) {
-      router.push(`/messages/${chatId}?${params.toString()}`)
-    } else {
-      router.push(`${pathname}?${params.toString()}`)
-    }
+    pushWithQuery(params)
   }
 
-  // Lấy tiêu đề dựa trên view hiện tại
   const getViewTitle = () => {
     switch (currentView) {
       case 'inbox':
@@ -98,8 +105,8 @@ export default function MessageLayout({ children }: LayoutProps) {
     }
   }
 
-  // Trong phần xử lý cho mobile
-  // Thay đổi phần này:
+  // ======= MOBILE LAYOUT =======
+  // Nếu là mobile và đang xem chi tiết chat → hiển thị trang chi tiết
   if (isMobile && isViewingChat) {
     return (
       <AnimatePresence mode='wait'>
@@ -117,13 +124,13 @@ export default function MessageLayout({ children }: LayoutProps) {
     )
   }
 
-  // Nếu là mobile và đang xem danh sách, chỉ hiển thị phần danh sách
+  // Nếu là mobile và đang ở danh sách
   if (isMobile) {
     return (
       <TooltipProvider delayDuration={0}>
         <div className='flex h-full flex-col'>
           <div className='flex h-full'>
-            {/* Nav bên trái - luôn hiển thị */}
+            {/* Nav trái cố định */}
             <div className='w-[60px] border-r pt-4'>
               <ScrollArea className='h-screen'>
                 <div className='mt-4 flex flex-col items-center justify-center'>
@@ -178,7 +185,7 @@ export default function MessageLayout({ children }: LayoutProps) {
               </ScrollArea>
             </div>
 
-            {/* Phần nội dung chính */}
+            {/* Nội dung chính */}
             <div className='relative flex-1'>
               {isViewingChat ? (
                 <AnimatePresence mode='wait'>
@@ -203,7 +210,6 @@ export default function MessageLayout({ children }: LayoutProps) {
                     transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                   >
                     {currentView === 'blocked-users' ? (
-                      // Hiển thị danh sách người dùng bị chặn
                       <div className='flex h-full flex-col'>
                         <div className='flex items-center px-4 py-3'>
                           <h1 className='text-xl font-bold'>{getViewTitle()}</h1>
@@ -212,20 +218,19 @@ export default function MessageLayout({ children }: LayoutProps) {
                         <BlockedUsersList />
                       </div>
                     ) : (
-                      // Hiển thị danh sách chat như bình thường
-                      <Tabs defaultValue={currentFilter} onValueChange={handleChangeTab}>
+                      <Tabs value={currentFilter} onValueChange={handleChangeTab}>
                         <div className='flex items-center px-4 py-2'>
                           <h1 className='text-xl font-bold'>{getViewTitle()}</h1>
                           <TabsList className='ml-auto'>
                             <TabsTrigger
                               value='all'
-                              className='dark:data-[state=active]:bg-background text-zinc-600 dark:text-zinc-200'
+                              className='text-zinc-600 dark:text-zinc-200 dark:data-[state=active]:bg-background'
                             >
                               {t('allMessages')}
                             </TabsTrigger>
                             <TabsTrigger
                               value='unread'
-                              className='dark:data-[state=active]:bg-background text-zinc-600 dark:text-zinc-200'
+                              className='text-zinc-600 dark:text-zinc-200 dark:data-[state=active]:bg-background'
                             >
                               {t('unread')}
                             </TabsTrigger>
@@ -250,7 +255,7 @@ export default function MessageLayout({ children }: LayoutProps) {
     )
   }
 
-  // Desktop layout với ResizablePanelGroup
+  // ======= DESKTOP LAYOUT =======
   return (
     <TooltipProvider delayDuration={0}>
       <ResizablePanelGroup
@@ -260,12 +265,13 @@ export default function MessageLayout({ children }: LayoutProps) {
         }}
         className='h-full max-h-screen items-stretch'
       >
+        {/* Sidebar trái */}
         <ResizablePanel
           defaultSize={minLayout[0]}
           collapsedSize={4}
-          collapsible={true}
-          minSize={15}
-          maxSize={isSmallScreen ? 4 : 20}
+          collapsible
+          minSize={isSmallScreen ? 4 : 15}
+          maxSize={isSmallScreen ? 8 : 20}
           onCollapse={() => onCollapseCallback(true)}
           onExpand={() => onCollapseCallback(false)}
           className={cn('pt-4', {
@@ -325,10 +331,12 @@ export default function MessageLayout({ children }: LayoutProps) {
             />
           </ScrollArea>
         </ResizablePanel>
+
         <ResizableHandle withHandle />
+
+        {/* Cột danh sách chat hoặc blocked users */}
         <ResizablePanel defaultSize={minLayout[1]} minSize={40}>
           {currentView === 'blocked-users' ? (
-            // Hiển thị danh sách người dùng bị chặn
             <div className='flex h-full flex-col'>
               <div className='flex items-center px-4 py-3'>
                 <h1 className='text-xl font-bold'>{getViewTitle()}</h1>
@@ -337,20 +345,19 @@ export default function MessageLayout({ children }: LayoutProps) {
               <BlockedUsersList />
             </div>
           ) : (
-            // Hiển thị danh sách chat như bình thường
-            <Tabs defaultValue={currentFilter} onValueChange={handleChangeTab}>
+            <Tabs value={currentFilter} onValueChange={handleChangeTab}>
               <div className='flex items-center px-4 py-2'>
                 <h1 className='text-xl font-bold'>{getViewTitle()}</h1>
                 <TabsList className='ml-auto'>
                   <TabsTrigger
                     value='all'
-                    className='dark:data-[state=active]:bg-background text-zinc-600 dark:text-zinc-200'
+                    className='text-zinc-600 dark:text-zinc-200 dark:data-[state=active]:bg-background'
                   >
                     {t('allMessages')}
                   </TabsTrigger>
                   <TabsTrigger
                     value='unread'
-                    className='dark:data-[state=active]:bg-background text-zinc-600 dark:text-zinc-200'
+                    className='text-zinc-600 dark:text-zinc-200 dark:data-[state=active]:bg-background'
                   >
                     {t('unread')}
                   </TabsTrigger>
@@ -366,7 +373,10 @@ export default function MessageLayout({ children }: LayoutProps) {
             </Tabs>
           )}
         </ResizablePanel>
+
         <ResizableHandle withHandle />
+
+        {/* Cột chi tiết chat */}
         <ResizablePanel defaultSize={minLayout[2]} minSize={35}>
           {children}
         </ResizablePanel>
