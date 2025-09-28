@@ -58,4 +58,36 @@ class NotificationService {
     return NotificationModel.updateMany({ userId, read: false }, { read: true })
   }
 
+  async deleteNotificationByRelatedId(relatedId: string | mongoose.Types.ObjectId) {
+    try {
+      await NotificationModel.deleteMany({ relatedId })
+      return true
+    } catch (error) {
+      console.error('Error deleting notifications:', error)
+      return false
+    }
+  }
+
+  async deleteNotification(notificationId: Types.ObjectId | string): Promise<boolean> {
+    try {
+      const result = await NotificationModel.findByIdAndDelete(notificationId)
+      return !!result
+    } catch (error) {
+      console.error('Error deleting notification:', error)
+      return false
+    }
+  }
+
+  async deleteAllNotifications(userId: Types.ObjectId | string): Promise<boolean> {
+    try {
+      const result = await NotificationModel.deleteMany({ userId })
+      return result.deletedCount > 0
+    } catch (error) {
+      console.error('Error deleting all notifications:', error)
+      return false
+    }
+  }
 }
+
+const notificationService = new NotificationService()
+export default notificationService
