@@ -46,7 +46,7 @@ class MailService {
       const mailOptions = {
         from: {
           address: env.MAIL_AUTH_USER,
-          name: name || 'Vu Motions'
+          name: name || 't9tieanh- Chat app of phamtienanh'
         },
         to: to,
         subject,

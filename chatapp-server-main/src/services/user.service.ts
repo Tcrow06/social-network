@@ -13,6 +13,7 @@ import { UpdateMyProfileDTO } from '~/schemas/user/update-profile.schema'
 import { UserIdentity } from '~/types/common.type'
 import jwtService from './jwt.service'
 import otpService from './otp.service'
+import { AppError } from '~/models/error.model'
 
 class UserService {
   async signAccessToken({ userId, verify }: UserIdentity) {
@@ -115,6 +116,16 @@ class UserService {
         SettingsModel.create({ userId })
       ])
     }
+
+    if (user.isActive === false) {
+      throw new AppError({
+        message:
+          'Your account is temporarily suspended. Please contact support for more information.',
+        status: 403, // FORBIDDEN
+        name: 'ACCOUNT_SUSPENDED_ERROR'
+      })
+    }
+
     const tokens = await this.login({
       userId: user._id as string,
       verify: user.verify
