@@ -140,13 +140,13 @@ function FormLogin({ className }: Props) {
     setLoadingState((prev) => ({ ...prev, google: false }))
   }
 
-  async function handleGithubLogin() {
-    setLoadingState((prev) => ({ ...prev, github: true }))
-    await signIn('github', {
-      callbackUrl: '/'
-    })
-    setLoadingState((prev) => ({ ...prev, github: false }))
-  }
+  // async function handleGithubLogin() {
+  //   setLoadingState((prev) => ({ ...prev, github: true }))
+  //   await signIn('github', {
+  //     callbackUrl: '/'
+  //   })
+  //   setLoadingState((prev) => ({ ...prev, github: false }))
+  // }
 
   return (
     <div className={cn('mx-auto flex w-full flex-col justify-center gap-0 space-y-6', className)}>
@@ -228,14 +228,6 @@ function FormLogin({ className }: Props) {
               <Icons.google className='mr-2 h-4 w-4' />
             )}{' '}
             Google
-          </Button>
-          <Button variant='outline' onClick={handleGithubLogin} className='flex-1/2' disabled={isLoading}>
-            {loadingState.github ? (
-              <Icons.spinner className='mr-2 h-4 w-4 animate-spin' />
-            ) : (
-              <Icons.gitHub className='mr-2 h-4 w-4' />
-            )}{' '}
-            GitHub
           </Button>
         </div>
         <div className='flex items-center justify-center space-x-1'>

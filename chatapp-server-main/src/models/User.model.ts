@@ -16,6 +16,7 @@ export interface IUser extends Document {
   provider?: string
   providerId?: string
   isBot: boolean
+  isActive?: boolean
   apiKey?: string
   createdBy: ObjectId | null
   emailLockedUntil: Date | null
@@ -76,6 +77,10 @@ const userSchema = new Schema<IUser>(
       type: Boolean,
       default: false
     },
+    isActive: {
+      type: Boolean,
+      default: true
+    },
     apiKey: {
       type: String
     },
@@ -94,7 +99,6 @@ const userSchema = new Schema<IUser>(
   },
   { timestamps: true }
 )
-
 
 const UserModel = model<IUser>('User', userSchema)
 

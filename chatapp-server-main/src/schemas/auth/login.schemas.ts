@@ -26,6 +26,16 @@ export const loginSchema = rawLoginSchema.transform(async (data, ctx) => {
     })
   }
 
+  // check is lock account
+  if (user.isActive === false) {
+    return ctx.addIssue({
+      message:
+        'Your account is temporarily suspended. Please contact support for more information.',
+      code: ZodIssueCode.custom,
+      path: ['email']
+    })
+  }
+
   if (user.emailLockedUntil) {
     const currentTime = new Date()
     const lockEndTime = user.emailLockedUntil

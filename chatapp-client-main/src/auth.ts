@@ -44,8 +44,7 @@ const auth: AuthOptions = {
               })
             )
           }
-
-          throw new Error(error?.message || 'An unexpected error occurred')
+          throw new Error(error?.response?.data?.message || 'An unexpected error occurred')
         }
       }
     }),

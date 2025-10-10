@@ -2,7 +2,6 @@ import { Router } from 'express'
 import searchController from '~/controllers/search.controller'
 import { accessTokenValidator } from '~/middlewares/auth.middleware'
 
-
 const searchRoutes = Router()
 
 // Tìm kiếm tất cả (người dùng, bài viết, cuộc trò chuyện)

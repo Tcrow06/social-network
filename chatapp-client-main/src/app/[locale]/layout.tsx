@@ -89,5 +89,4 @@ function Layout({ params, children }: Props) {
   )
 }
 
-
 export default Layout
